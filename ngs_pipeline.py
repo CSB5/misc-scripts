@@ -17,6 +17,9 @@ is as follows:
 2.2 .realn.bam (using 1.1 and 2.1)
 3.1 .realn.recal.table (using 2.2)
 3.2 .realn.recal.bam (using 2.2 and 3.1)
+
+NOTE: this was the first time I used ruffus. There is a good chance
+therefore that I misused it.
 """
 
 
@@ -206,6 +209,7 @@ def run_markdups(bam, outbam):
     outmetrics = outbam.replace(".bam", "") + ".metrics"
     cmd.append("VALIDATION_STRINGENCY=LENIENT")
     cmd.append("INPUT=%s" % bam)
+    cmd.append("TMP_DIR=%s" % os.path.dirname(outbam))
     cmd.append("OUTPUT=%s" % outbam)
     cmd.append("METRICS_FILE=%s" % outmetrics)
     cmd.append("CREATE_INDEX=true")
