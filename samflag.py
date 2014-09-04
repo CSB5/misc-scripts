@@ -48,7 +48,7 @@ def main():
     """main function
     """
 
-    if '-h' in sys.argv:
+    if '-h' in sys.argv or len(sys.argv)==1:
         sys.stderr.write("Usage %s [flag]:\n" % (os.path.basename(sys.argv[0])))
         sys.stderr.write("Expects SAM flag as int as only argument."
                          " Otherwise all flags will be listed\n")
