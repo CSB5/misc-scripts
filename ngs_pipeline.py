@@ -309,8 +309,9 @@ def run_baserecalibrator_table(bam, recal_table):
     cmd.extend(['-T', 'BaseRecalibrator'])
     cmd.extend(['-R', CFG['reffa']])
     cmd.extend(['-I', bam])
-    if CFG['dbsnp']:
-        cmd.extend(['-knownSites', CFG['dbsnp']])
+    # mandatory
+    assert CFG['dbsnp']
+    cmd.extend(['-knownSites', CFG['dbsnp']])
     else:
         LOG.warn("not using any known SNVs (e.g. dbSNP) for BaseRecalibrator")
     cmd.extend(['-o', recal_table])
@@ -460,9 +461,10 @@ def cmdline_parser():
                         help="Reference fasta file (indexed and with dict!"
                         " For this you can for example use Picard's CreateSequenceDictionary with CREATE_INDEX=true")
     parser.add_argument('-k', "--known",
+                        required=True
                         dest="dbsnp",
-                        help="VCF file of known SNVs for base-call"
-                        " quality recalibration (tabix indexed!)")
+                        help="VCF file of known variants (for indel-realignment and base-call quality recalibration). Create an empty one just containing a header if not available")
+                        # FIXME create empty one if arg is empty and warn (remove required True)
     parser.add_argument('-t', "--tasks",
                         dest="tasks",
                         default=DEFAULT_TASKS,
