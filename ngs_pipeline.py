@@ -17,9 +17,6 @@ is as follows:
 2.2 .realn.bam (using 1.1 and 2.1)
 3.1 .realn.recal.table (using 2.2)
 3.2 .realn.recal.bam (using 2.2 and 3.1)
-
-NOTE: this was the first time I used ruffus. There is a good chance
-therefore that I misused it.
 """
 
 
@@ -78,7 +75,7 @@ CFG = {
     'dbsnp': None,# dbsnp vcf files
     'simul': False}# simulate only
 
-DEFAULT_TASKS = ['baserecalibrator']
+DEFAULT_TASK = 'baserecalibrator'
 
 class JobFailedException(Exception):
     pass
@@ -209,10 +206,11 @@ def run_markdups(bam, outbam):
     outmetrics = outbam.replace(".bam", "") + ".metrics"
     cmd.append("VALIDATION_STRINGENCY=LENIENT")
     cmd.append("INPUT=%s" % bam)
-    cmd.append("TMP_DIR=%s" % os.path.dirname(outbam))
     cmd.append("OUTPUT=%s" % outbam)
     cmd.append("METRICS_FILE=%s" % outmetrics)
     cmd.append("CREATE_INDEX=true")
+    cmd.append("TMP_DIR=./picard_tmp")
+    cmd.append("ASSUME_SORTED=true")
 
     if not CFG['simul']:
         log_fh = open("%s.log" % outbam, 'w')
@@ -463,13 +461,13 @@ def cmdline_parser():
                         dest="dbsnp",
                         help="VCF file of known SNVs for base-call"
                         " quality recalibration (tabix indexed!)")
-    parser.add_argument('-t', "--tasks",
-                        dest="tasks",
-                        default=DEFAULT_TASKS,
+    parser.add_argument('-t', "--task",
+                        dest="task",
+                        default=DEFAULT_TASK,
     #default = list(),
-                        action="append",
+    #                    action="append",
     #                        required=True,
-                        help="Tasks to run (default %s)" % (DEFAULT_TASKS))
+                        help="Task to run (default %s)" % (DEFAULT_TASK))
     # FIXME output list of all tasks (currently not possible with ruffus)
     parser.add_argument("--only-print",
                         action="store_true",
@@ -522,11 +520,12 @@ def main():
         
     CFG['simul'] = args.simul
     
+
     #import pdb; pdb.set_trace()
     if args.only_print:
-        pipeline_printout(sys.stdout, args.tasks)
+        pipeline_printout(sys.stdout, [args.task])
     else:
-        pipeline_run(args.tasks, #touch_files_only=True,
+        pipeline_run([args.task], #touch_files_only=True,
                      multiprocess=args.nummultiproc,
                      verbose=ruffus_verbosity, logger=LOG)
     
