@@ -206,11 +206,10 @@ def run_markdups(bam, outbam):
     outmetrics = outbam.replace(".bam", "") + ".metrics"
     cmd.append("VALIDATION_STRINGENCY=LENIENT")
     cmd.append("INPUT=%s" % bam)
+    cmd.append("TMP_DIR=%s" % os.path.dirname(outbam))
     cmd.append("OUTPUT=%s" % outbam)
     cmd.append("METRICS_FILE=%s" % outmetrics)
     cmd.append("CREATE_INDEX=true")
-    cmd.append("TMP_DIR=./picard_tmp")
-    cmd.append("ASSUME_SORTED=true")
 
     if not CFG['simul']:
         log_fh = open("%s.log" % outbam, 'w')
