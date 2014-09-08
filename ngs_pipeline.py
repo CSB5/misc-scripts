@@ -17,9 +17,6 @@ is as follows:
 2.2 .realn.bam (using 1.1 and 2.1)
 3.1 .realn.recal.table (using 2.2)
 3.2 .realn.recal.bam (using 2.2 and 3.1)
-
-NOTE: this was the first time I used ruffus. There is a good chance
-therefore that I misused it.
 """
 
 
@@ -36,6 +33,9 @@ __license__ = "GPL2"
 # https://github.com/fsroque/NGS-pipeline/blob/master/pipeline_multisample.py
 # and
 # https://github.com/seandavi/ngs/blob/master/scripts/exomecapture.py
+#
+# NOTE: this was the first time I used ruffus. There is a good chance
+# therefore that I misused it.
 
 
 # --- standard library imports
@@ -46,7 +46,6 @@ import argparse
 import logging
 #import json
 import subprocess
-import glob
 
 #--- third-party imports
 #
@@ -78,7 +77,7 @@ CFG = {
     'dbsnp': None,# dbsnp vcf files
     'simul': False}# simulate only
 
-DEFAULT_TASKS = ['baserecalibrator']
+DEFAULT_TASK = 'baserecalibrator'
 
 class JobFailedException(Exception):
     pass
@@ -101,7 +100,7 @@ def run_cmd(cmd, log_stdout=sys.stdout, log_stderr=sys.stderr):
     # FIXME will only print stdout and stderr once done and also keep
     # all the output in memory right? Better to use shell and redirect
     # instead?
-    
+
     if p.returncode != 0:
         raise JobFailedException(
             "Following command failed with exit status"
@@ -121,12 +120,12 @@ def run_trimming(fastq_files, phred33=True, outdir=None):
     Output will be written to directory of first fastq file if outdir
     is not given. Assuming Sanger format of fastq files unless phred33
     is False.
-    
+
     FIXME output file name (at least for paired): PDH132_s1.fastq.gz -> PDH132_s1_val_2.fq.gz
-    
+
     FIXME Allow use of other trimmers
     """
-    
+
     assert isinstance(fastq_files, list)
 
     try:
@@ -136,8 +135,8 @@ def run_trimming(fastq_files, phred33=True, outdir=None):
     assert trim_galore
 
     cmd = [trim_galore]
-    
-    assert len(fastq_files)==2# FIXME hardcoded paired
+
+    assert len(fastq_files) == 2# FIXME hardcoded paired
     cmd.extend(['--gzip', '--paired'])
     if not phred33:
         cmd.append('--phred64')
@@ -152,7 +151,7 @@ def run_trimming(fastq_files, phred33=True, outdir=None):
     # FIXME missing simul opt
     # part of the problem is that the output files can't be specified
     (stdout, stderr) = run_cmd(cmd)
-            
+
     # output files names can't specified. could be trimmed.fq if
     # single or val_X f paired and could be gzipped or not depending
     # on input and output settings. try to parse from output. if
@@ -164,7 +163,7 @@ def run_trimming(fastq_files, phred33=True, outdir=None):
         if line.startswith("Writing validated paired-end read"):
             f = line.split(' ')[-1]
             f = os.path.join(outdir, f)
-            outfiles.append(f)            
+            outfiles.append(f)
     return outfiles
 
 
@@ -173,7 +172,7 @@ def run_fastqc(fastq_files):
     """
 
     assert isinstance(fastq_files, list)
-    
+
     try:
         fastqc = CFG['fastqc']
     except KeyError:
@@ -188,7 +187,7 @@ def run_fastqc(fastq_files):
 
     # FIXME missing simul opt.
     # needs to define output file name first.
-    run_cmd(cmd)   
+    run_cmd(cmd)
 
 # ----------------------------------------------------------------------
 # EO unused bits
@@ -201,11 +200,11 @@ def run_markdups(bam, outbam):
 
     markdups_jar = CFG['picard_dir'] + 'MarkDuplicates.jar'
     assert os.path.exists(markdups_jar)
-     
+
     cmd = [CFG['java']]
     cmd.extend(CFG['java_opts'])
     cmd.extend(['-jar', markdups_jar])
-               
+
     outmetrics = outbam.replace(".bam", "") + ".metrics"
     cmd.append("VALIDATION_STRINGENCY=LENIENT")
     cmd.append("INPUT=%s" % bam)
@@ -224,7 +223,7 @@ def run_markdups(bam, outbam):
         fh.write("cmd=%s\n" % ' '.join(cmd))
         fh.close()
 
-    
+
 def run_index_bam(bam):
     """Index BAM file with samtools
 
@@ -242,7 +241,7 @@ def run_index_bam(bam):
 
 
 def run_indelrealigner_targets(bam, ivals):
-    """Run GATK's RealignerTargetCreator 
+    """Run GATK's RealignerTargetCreator
     See http://www.broadinstitute.org/gatk/gatkdocs/org_broadinstitute_sting_gatk_walkers_indels_RealignerTargetCreator.html
     """
 
@@ -266,8 +265,8 @@ def run_indelrealigner_targets(bam, ivals):
         fh = open(ivals, 'w')
         fh.write("cmd=%s\n" % ' '.join(cmd))
         fh.close()
-    
-    
+
+
 def run_indelrealigner(bam, ivals, realn_bam):
     """Run GATK's IndelRealigner
     See http://www.broadinstitute.org/gatk/gatkdocs/org_broadinstitute_sting_gatk_walkers_indels_IndelRealigner.html
@@ -294,7 +293,7 @@ def run_indelrealigner(bam, ivals, realn_bam):
         fh = open(realn_bam, 'w')
         fh.write("cmd=%s\n" % ' '.join(cmd))
         fh.close()
-    
+
 
 def run_baserecalibrator_table(bam, recal_table):
     """Run GATK's BaseRecalibrator
@@ -312,8 +311,6 @@ def run_baserecalibrator_table(bam, recal_table):
     # mandatory
     assert CFG['dbsnp']
     cmd.extend(['-knownSites', CFG['dbsnp']])
-    else:
-        LOG.warn("not using any known SNVs (e.g. dbSNP) for BaseRecalibrator")
     cmd.extend(['-o', recal_table])
 
     if not CFG['simul']:
@@ -325,14 +322,14 @@ def run_baserecalibrator_table(bam, recal_table):
         fh = open(recal_table, 'w')
         fh.write("cmd=%s\n" % ' '.join(cmd))
         fh.close()
-    
+
 
 def run_baserecalibrator(bam, recal_table, recal_bam):
     """Run GATK's PrintReads for BaseRecalibrator
 
     See http://gatkforums.broadinstitute.org/discussion/44/base-quality-score-recalibration-bqsr
     """
-    
+
     cmd = [CFG['java']]
     cmd.extend(CFG['java_opts'])
     cmd.extend(['-jar', CFG['gatk']])
@@ -352,9 +349,9 @@ def run_baserecalibrator(bam, recal_table, recal_bam):
         fh = open(recal_bam, 'w')
         fh.write("cmd=%s\n" % ' '.join(cmd))
         fh.close()
-    
 
-    
+
+
 # ------------------------------------------------------------
 # ruffus tasks
 #
@@ -371,7 +368,7 @@ def generate_parameters():
         y = (f, f.replace(".bam", ".mdups.bam"))
         yield y
 
-@files(generate_parameters) 
+@files(generate_parameters)
 def markdups(input, output):
     """Proxy to run_markdups()
     """
@@ -388,7 +385,7 @@ def indelrealigner_targets(input, output):
     """
     run_indelrealigner_targets(input, output)
 
-    
+
 @follows(indelrealigner_targets)
 @transform(indelrealigner_targets, suffix('.realn.intervals'), add_inputs(r'\1.bam'), '.realn.bam')
 def indelrealigner(input, output):
@@ -404,15 +401,15 @@ def baserecalibrator_table(input, output):
     """
     run_baserecalibrator_table(input, output)
 
-    
+
 @follows(baserecalibrator_table)
 @transform(baserecalibrator_table, suffix('.realn.recal.table'), add_inputs(r'\1.realn.bam'), '.realn.recal.bam')
 def baserecalibrator(input, output):
     """Proxy to run_baserecalibrator_table()
     """
     run_baserecalibrator(input[1], input[0], output)
-    
-    
+
+
 # ------------------------------------------------------------
 # user interface
 # ------------------------------------------------------------
@@ -422,9 +419,9 @@ def cmdline_parser():
     """
     creates an OptionParser instance
     """
-    
+
     parser = argparse.ArgumentParser(description=__doc__)
-    
+
     parser.add_argument("-v", "--verbose",
                         action="store_true",
                         dest="verbose",
@@ -461,17 +458,14 @@ def cmdline_parser():
                         help="Reference fasta file (indexed and with dict!"
                         " For this you can for example use Picard's CreateSequenceDictionary with CREATE_INDEX=true")
     parser.add_argument('-k', "--known",
-                        required=True
+                        required=True,
                         dest="dbsnp",
                         help="VCF file of known variants (for indel-realignment and base-call quality recalibration). Create an empty one just containing a header if not available")
                         # FIXME create empty one if arg is empty and warn (remove required True)
     parser.add_argument('-t', "--tasks",
                         dest="tasks",
-                        default=DEFAULT_TASKS,
-    #default = list(),
-                        action="append",
-    #                        required=True,
-                        help="Tasks to run (default %s)" % (DEFAULT_TASKS))
+                        default=DEFAULT_TASK,
+                        help="Task to run (default %s)" % (DEFAULT_TASK))
     # FIXME output list of all tasks (currently not possible with ruffus)
     parser.add_argument("--only-print",
                         action="store_true",
@@ -488,10 +482,10 @@ def cmdline_parser():
 def main():
     """main function
     """
-    
+
     parser = cmdline_parser()
     args = parser.parse_args()
-    
+
     ruffus_verbosity = 1
     if args.verbose:
         LOG.setLevel(logging.INFO)
@@ -501,7 +495,7 @@ def main():
         ruffus_verbosity = 4
 
     #with open(args.config) as configfile:
-    #    config=json.load(configfile)    
+    #    config=json.load(configfile)
     CFG['bam_in'] = args.bam
     if args.numthreads:
         CFG['numthreads'] = args.numthreads
@@ -510,7 +504,7 @@ def main():
     CFG['java_opts'].append('-XX:ParallelGCThreads=%d' % CFG['numthreads'])
     if args.dbsnp:
         CFG['dbsnp'] = args.dbsnp
-        
+
     CFG['reffa'] = args.reffa
     # FIXME the following two should be part of the pipeline
     faidx = CFG['reffa'] + ".fai"
@@ -521,24 +515,25 @@ def main():
     if not os.path.exists(fadict):
         LOG.fatal("dict for reference fa %s missing. Please run Picard's CreateSequenceDictionary first" % CFG['reffa'])
         sys.exit(1)
-        
+
     CFG['simul'] = args.simul
-    
+
+
     #import pdb; pdb.set_trace()
     if args.only_print:
-        pipeline_printout(sys.stdout, args.tasks)
+        pipeline_printout(sys.stdout, [args.task])
     else:
-        pipeline_run(args.tasks, #touch_files_only=True,
+        pipeline_run([args.task], #touch_files_only=True,
                      multiprocess=args.nummultiproc,
                      verbose=ruffus_verbosity, logger=LOG)
-    
-    
+
+
 if __name__ == "__main__":
     main()
     #LOG.info("Successful program exit")
     # FIXME add test set (E.coli or viral? Needs RG)
-    
-    
+
+
 
 
 
