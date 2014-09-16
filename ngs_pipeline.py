@@ -208,7 +208,10 @@ def run_markdups(bam, outbam):
     outmetrics = outbam.replace(".bam", "") + ".metrics"
     cmd.append("VALIDATION_STRINGENCY=LENIENT")
     cmd.append("INPUT=%s" % bam)
-    cmd.append("TMP_DIR=%s" % os.path.dirname(outbam))
+    tmpdir = os.path.dirname(outbam)
+    if not tmpdir:
+        tmpdir="."
+    cmd.append("TMP_DIR=%s" % tmpdir)
     cmd.append("OUTPUT=%s" % outbam)
     cmd.append("METRICS_FILE=%s" % outmetrics)
     cmd.append("CREATE_INDEX=true")
@@ -463,7 +466,7 @@ def cmdline_parser():
                         help="VCF file of known variants (for indel-realignment and base-call quality recalibration). Create an empty one just containing a header if not available")
                         # FIXME create empty one if arg is empty and warn (remove required True)
     parser.add_argument('-t', "--tasks",
-                        dest="tasks",
+                        dest="task",
                         default=DEFAULT_TASK,
                         help="Task to run (default %s)" % (DEFAULT_TASK))
     # FIXME output list of all tasks (currently not possible with ruffus)
