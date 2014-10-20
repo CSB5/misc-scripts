@@ -5,6 +5,7 @@ A collection of miscellaneous scripts used in CSB5
 
 Script                     | Description
 ------                     |  -----------
+bed_len.sh                 | Print length of each bed region incl summary
 bam_num_reads.sh           | Infer number of aligned and unaligned reads from BAM file[s]
 bwamem_pe.sh               | Perform BWA-MEM mapping for paired end reads (incl. some massaging)
 deinterleave_fastq.py      | Deinterleave an interleaved FastQ file
