@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """Deainterleave FastQ. Can handle paired and single end.
+
+This can for example be used to properly convert a PE BAM back to FastQ:
+htscmd bamshuf -uOn 128 $bam tmp | htscmd bam2fq -a - | deinterleave_fastq.py - $outprefix
 """
 
 __author__ = "Andreas Wilm"
