@@ -11,8 +11,8 @@ The pipeline is based on file-extensions. The current flow of things
 is as follows:
 
 0   .bam (indexed input bam file)
-1.1 .mdup.bam
-1.2 .mdup.bam.bai
+1.1 .mdups.bam
+1.2 .mdups.bam.bai
 2.1 .realn.intervals (using 1.1)
 2.2 .realn.bam (using 1.1 and 2.1)
 3.1 .realn.recal.table (using 2.2)
@@ -517,6 +517,7 @@ def main():
     fadict = os.path.splitext(CFG['reffa'])[0] + ".dict"
     if not os.path.exists(fadict):
         LOG.fatal("dict for reference fa %s missing. Please run Picard's CreateSequenceDictionary first" % CFG['reffa'])
+        # e.g. java -jar /mnt/software/stow/picard-tools-1.115/bin/CreateSequenceDictionary.jar R=Ecoli_K12_MG1655_NC_000913.fa O=Ecoli_K12_MG1655_NC_000913.dict
         sys.exit(1)
 
     CFG['simul'] = args.simul
