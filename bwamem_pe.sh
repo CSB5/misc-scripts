@@ -113,6 +113,9 @@ rgid=$(echo $PWD/$fq1 | md5sum | cut -d" " -f1)
 rgpu=$rgid.PU
 
 PICARD_TMP=$(dirname $outpref)
+if test -d /dev/shm/; then
+	PICARD_TMP=/dev/shm/$PICARD_TMP
+fi
 #cat <<EOF
 bwa mem -M -t $threads $ref $fq1 $fq2 \
     -R "@RG\tID:${rgid}\tPL:illumina\tPU:${rgpu}\tLB:lb-dummy\tSM:sm-dummy"| \
@@ -125,6 +128,5 @@ bwa mem -M -t $threads $ref $fq1 $fq2 \
     SORT_ORDER=coordinate \
     TMP_DIR=$PICARD_TMP \
     INPUT=/dev/stdin OUTPUT=${outpref}.bam || exit 1
-#EOF
-
 samtools index ${outpref}.bam
+#EOF
