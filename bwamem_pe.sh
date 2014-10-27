@@ -12,14 +12,12 @@
 
 set -o pipefail
 
-DEFAULT_THREADS=10
+DEFAULT_THREADS=8
 
-# FIXME make BWA user changeable
-BWA=/mnt/software/stow/bwa-0.7.10/bin/bwa
+# FIXME make PICARD_DIR user changeable through e.g env var
+PICARDDIR_DEFAULT=/mnt/software/src/MAPPERS/picard-tools-1.113/
 
-JAVA_EXTRA_ARGS="-XX:ParallelGCThreads=$DEFAULT_THREADS -Xmx4g"
-
-# FIXME make PICARD_DIR user changeable
+test -z "$PICARDDIR" && PICARDDIR=$PICARDDIR_DEFAULT
 PICARD_DIR=/mnt/software/src/MAPPERS/picard-tools-1.113/
 PICARD_ADDRG=${PICARD_DIR}/AddOrReplaceReadGroups.jar
 PICARD_CLEAN=${PICARD_DIR}/CleanSam.jar
@@ -27,13 +25,35 @@ PICARD_FIXMATE=${PICARD_DIR}/FixMateInformation.jar
 
 usage() {
 cat <<EOF
-$(basename $0): bwa mem pe wrapper
+$(basename $0): wrapper for running BWA-MEM on paired-end reads
     -f | --ref     : reference
     -1 | --fq1     : first fastq file
     -2 | --fq2     : second fastq file
     -o | --outpref : output prefix
+    -t | --threads : number of threads to use (default is $DEFAULT_THREADS)
 EOF
 }
+
+
+# check for programs
+for b in bwa java; do
+    if ! which $b >/dev/null 2>&1; then 
+        echo "FATAL: $b seems to be missing on your system" 1>&2
+        exit 1
+    fi
+done
+# make sure bwa supportst mem
+if bwa mem 2>&1 | grep -q unrecognized; then
+    echo "FATAL: bwa doesn't seem to support the 'mem' command" 1>&2
+    exit 1
+fi
+# check for picard stuff
+for f in $PICARD_ADDRG $PICARD_CLEAN $PICARD_FIXMATE; do
+    if [ ! -e "$f" ]; then
+        echo "FATAL: missing file $f" 1>&2
+        exit 1
+    fi
+done
 
 
 while [ "$1" != "" ]; do
@@ -67,19 +87,16 @@ while [ "$1" != "" ]; do
 done
 
 test -z "$threads" && threads=$DEFAULT_THREADS
+JAVA_EXTRA_ARGS="-XX:ParallelGCThreads=$threads -Xmx4g"
+
 for f in $fq1 $fq2 $ref; do
     test -z "$f" && exit 1
     test -e "$f" || exit 1
 done
+
 test -z "$outpref" && exit 1
 test -e ${OUTPREF}.bam && exit 1
 
-for f in $PICARD_ADDRG $PICARD_CLEAN $PICARD_FIXMATE $BWA; do
-    if [ ! -e "$f" ]; then
-        echo "FATAL: missing file $f" 1>&2
-        exit 1
-    fi
-done
 
 
 if [ ! -e ${ref}.bwt ]; then
@@ -87,7 +104,7 @@ if [ ! -e ${ref}.bwt ]; then
     sleep=$RANDOM
     let "sleep %= 10"
     sleep $sleep
-    $BWA index $ref || exit 1
+    bwa index $ref || exit 1
 fi
 
 
@@ -97,7 +114,7 @@ rgpu=$rgid.PU
 
 PICARD_TMP=$(dirname $outpref)
 #cat <<EOF
-$BWA mem -M -t $threads $ref $fq1 $fq2 \
+bwa mem -M -t $threads $ref $fq1 $fq2 \
     -R "@RG\tID:${rgid}\tPL:illumina\tPU:${rgpu}\tLB:lb-dummy\tSM:sm-dummy"| \
     java $JAVA_EXTRA_ARGS -jar $PICARD_CLEAN \
     VALIDATION_STRINGENCY=LENIENT \
