@@ -14,11 +14,8 @@ set -o pipefail
 
 DEFAULT_THREADS=8
 
-# FIXME make PICARD_DIR user changeable through e.g env var
 PICARDDIR_DEFAULT=/mnt/software/src/MAPPERS/picard-tools-1.113/
-
-test -z "$PICARDDIR" && PICARDDIR=$PICARDDIR_DEFAULT
-PICARD_DIR=/mnt/software/src/MAPPERS/picard-tools-1.113/
+test -z "$PICARD_DIR" && PICARD_DIR=$PICARDDIR_DEFAULT
 PICARD_ADDRG=${PICARD_DIR}/AddOrReplaceReadGroups.jar
 PICARD_CLEAN=${PICARD_DIR}/CleanSam.jar
 PICARD_FIXMATE=${PICARD_DIR}/FixMateInformation.jar
@@ -88,7 +85,8 @@ done
 
 test -z "$threads" && threads=$DEFAULT_THREADS
 JAVA_EXTRA_ARGS="-XX:ParallelGCThreads=$threads -Xmx4g"
-
+# smetimes needed see https://sourceforge.net/p/samtools/mailman/message/31865651/
+#JAVA_EXTRA_ARGS="$JAVA_EXTRA_ARGS -Dsamjdk.try_use_intel_deflater=false"
 for f in $fq1 $fq2 $ref; do
     test -z "$f" && exit 1
     test -e "$f" || exit 1
