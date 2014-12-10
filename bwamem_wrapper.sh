@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# This script will align your paired-end reads with BWA-mem. It will
-# also add a read-group (md5 of your filename), clean the SAM and fix
-# mate information during which the BAM file will get sorted as well.
+# This script will align your reads with BWA-MEM and massage the
+# output nicely, by 1) adding a read-group, clean the output, fix
+# the # mate information (if any) and sort the BAM file
 
 # Authors:
 # - Andreas Wilm <wilma@gis.a-star.edu.sg>
 # - LI Chenhao <lich@gis.a-star.edu.sg>
 #
-# License: GPL2
+# License: MIT
 
 set -o pipefail
 
@@ -25,7 +25,7 @@ cat <<EOF
 $(basename $0): wrapper for running BWA-MEM on paired-end reads
     -f | --ref     : reference
     -1 | --fq1     : first fastq file
-    -2 | --fq2     : second fastq file
+    -2 | --fq2     : second fastq file (optional)
     -o | --outpref : output prefix
     -t | --threads : number of threads to use (default is $DEFAULT_THREADS)
 EOF
@@ -87,7 +87,7 @@ test -z "$threads" && threads=$DEFAULT_THREADS
 JAVA_EXTRA_ARGS="-XX:ParallelGCThreads=$threads -Xmx4g"
 # smetimes needed see https://sourceforge.net/p/samtools/mailman/message/31865651/
 #JAVA_EXTRA_ARGS="$JAVA_EXTRA_ARGS -Dsamjdk.try_use_intel_deflater=false"
-for f in $fq1 $fq2 $ref; do
+for f in $fq1 $ref; do
     test -z "$f" && exit 1
     test -e "$f" || exit 1
 done
@@ -107,7 +107,7 @@ fi
 
 
 # use md5sum of the file name as the read group
-rgid=$(echo $PWD/$fq1 | md5sum | cut -d" " -f1)
+rgid=$(echo $PWD/$fq1 | md5sum | cut -d " " -f1)
 rgpu=$rgid.PU
 
 PICARD_TMP=$(dirname $outpref)
