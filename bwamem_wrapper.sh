@@ -111,6 +111,7 @@ rgid=$(echo $PWD/$fq1 | md5sum | cut -d " " -f1)
 rgpu=$rgid.PU
 
 PICARD_TMP=$(dirname $outpref)
+# using /dev/shm/ only makes sense if RAM is big enough
 #if test -d /dev/shm/; then
 #	PICARD_TMP=/dev/shm/$PICARD_TMP
 #fi
