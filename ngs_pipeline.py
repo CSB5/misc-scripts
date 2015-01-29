@@ -46,6 +46,7 @@ import argparse
 import logging
 #import json
 import subprocess
+import tempfile
 
 #--- third-party imports
 #
@@ -81,6 +82,15 @@ DEFAULT_TASK = 'baserecalibrator'
 
 class JobFailedException(Exception):
     pass
+
+
+def create_empty_vcf():
+    """Create a temporary vcf file that's empty and return path"""
+
+    with tempfile.NamedTemporaryFile(mode='w', prefix='empty', suffix='vcf', delete=False) as fh:
+        fh.write('##fileformat=VCFv4.0\n')
+        fh.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+    return fh.name
 
 
 def run_cmd(cmd, log_stdout=sys.stdout, log_stderr=sys.stderr):
@@ -210,7 +220,7 @@ def run_markdups(bam, outbam):
     cmd.append("INPUT=%s" % bam)
     tmpdir = os.path.dirname(outbam)
     if not tmpdir:
-        tmpdir="."
+        tmpdir = "."
     cmd.append("TMP_DIR=%s" % tmpdir)
     cmd.append("OUTPUT=%s" % outbam)
     cmd.append("METRICS_FILE=%s" % outmetrics)
@@ -463,8 +473,7 @@ def cmdline_parser():
     parser.add_argument('-k', "--known",
                         required=True,
                         dest="dbsnp",
-                        help="VCF file of known variants (for indel-realignment and base-call quality recalibration). Create an empty one just containing a header if not available")
-                        # FIXME create empty one if arg is empty and warn (remove required True)
+                        help="VCF file of known variants (for indel-realignment and base-call quality recalibration). Set to EMPTY if missing.")
     parser.add_argument('-t', "--tasks",
                         dest="task",
                         default=DEFAULT_TASK,
@@ -506,8 +515,14 @@ def main():
     # FIXME should be part of config
     CFG['java_opts'].append('-XX:ParallelGCThreads=%d' % CFG['numthreads'])
     if args.dbsnp:
-        CFG['dbsnp'] = args.dbsnp
-
+        if args.dbsnp == "EMPTY":
+            CFG['dbsnp'] = create_empty_vcf()
+        else:
+            CFG['dbsnp'] = args.dbsnp
+    if not os.path.exists(CFG['dbsnp']):
+        LOG.fatal("%s does not exist" % CFG['dbsnp'])
+        sys.exit(1)
+    
     CFG['reffa'] = args.reffa
     # FIXME the following two should be part of the pipeline
     faidx = CFG['reffa'] + ".fai"
