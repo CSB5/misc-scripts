@@ -48,15 +48,24 @@ def main():
     """main function
     """
 
-    if '-h' in sys.argv or len(sys.argv)==1:
-        sys.stderr.write("Usage %s [flag]:\n" % (os.path.basename(sys.argv[0])))
+    def usage():
+        sys.stderr.write("Usage %s [-h] [flag]:\n" % (os.path.basename(sys.argv[0])))
         sys.stderr.write("Expects SAM flag as int as only argument."
                          " Otherwise all flags will be listed\n")
-        sys.exit(0)
-    try:
-        flag = int(sys.argv[1])
+
+    if '-h' in sys.argv or len(sys.argv) > 2:
+        usage()
+        sys.exit(1)
+
+    if len(sys.argv) == 2:
+        try:
+            flag = int(sys.argv[1])
+        except ValueError:
+            sys.stderr.write("ERROR: couldn't parse flag\n")
+            usage()
+            sys.exit(1)
         explain_samflag(flag)
-    except:
+    else:
         for (bit, sam_descr, pic_descr) in SAM_FLAG_BITS:
             print "0x%x: %s / %s" % (bit, sam_descr, pic_descr)
     
