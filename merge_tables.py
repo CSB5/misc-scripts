@@ -8,7 +8,6 @@ It will be helpful in dealing with species abundance tables (metaphlan outputs).
 import os
 import sys
 import argparse
-import pandas as pd
 import re
 
 def main(arguments):
@@ -51,7 +50,7 @@ def main(arguments):
     
     ####################merge data frames####################
     dfs = []
-    
+    import pandas as pd
     for f in args.infiles:
         dfs.append(pd.read_table(f, sep = args.sep,
                                  skiprows = (1 if args.head_flag else None),
