@@ -25,6 +25,11 @@ def main(arguments):
     parser.add_argument("-p", "--pattern",
                         dest="pRegex",
                         help="Use part of the file names as the output column names. Default: [file base name]")
+
+    parser.add_argument("-f", "--naFill",
+                        dest="naFill",
+                        type=float,
+                        help="Fill the missing values. Default: [0.0]")
     
     parser.add_argument("--header",
                         action = "store_true",
@@ -60,7 +65,7 @@ def main(arguments):
     
     df_merged = reduce(lambda left,right: pd.merge(left,right,how = 'outer',
                                                   left_index=True, right_index=True),
-                      dfs).fillna(0)
+                      dfs).fillna(args.naFill)
     df_merged.columns = colnames
   #  print df_merged
 
